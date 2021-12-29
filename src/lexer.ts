@@ -119,7 +119,7 @@ export type Token = {
   literal: string;
 };
 
-type TokenType =
+export type TokenType =
   | 'assign'
   | 'illegal'
   | 'semicolon'
