@@ -68,9 +68,11 @@ export function lexer(input: string) {
         index = i - 1;
       }
     }
-
+    
     tokens.push(token);
   }
+
+  tokens.push({ type: 'eof', literal: 'eof' });
 
   return tokens;
 }

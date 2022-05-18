@@ -8,343 +8,383 @@ const PRODUCT = 5;
 const PREFIX = 6;
 const CALL = 7;
 
+const precedenceMap: Map<TokenType, number> = new Map([
+  ['eq', EQUALS],
+  ['neq', EQUALS],
+  ['lt', LESSGREATER],
+  ['gt', LESSGREATER],
+  ['plus', SUM],
+  ['minus', SUM],
+  ['slash', PRODUCT],
+  ['asterisk', PRODUCT],
+  ['lparen', CALL],
+]);
+
+const prefixOperators: TokenType[] = ['bang', 'minus'];
+const infixOperators: TokenType[] = [
+  'bang',
+  'minus',
+  'plus',
+  'asterisk',
+  'slash',
+  'gt',
+  'lt',
+  'eq',
+  'neq',
+];
+
 export function parser(tokens: Token[]) {
   let statements: any = [];
   let errors: string[] = [];
 
-  for (let i = 0; i < tokens.length; i++) {
-    const { statement, endIndex } = parseStatement(i);
-    statements.push(statement);
-    i = endIndex;
+  let index = 0;
+
+  let currentToken = tokens[index];
+  let nextToken = tokens[index + 1];
+
+  function advanceTokens(amount = 1) {
+    index += amount;
+    currentToken = tokens[index];
+    nextToken = tokens[index + 1];
   }
 
-  function parseStatement(startIndex: number = 0) {
-    let endIndex = startIndex;
-    let statement: any;
-    const token = tokens[startIndex];
-
-    if (token.type === 'let') {
-      const { statement: s, endIndex: e } = parseLetStatement(startIndex);
-      statement = s;
-      endIndex = e;
-    } else if (token.type === 'return') {
-      const { statement: s, endIndex: e } = parseReturnStatement(startIndex);
-      statement = s;
-      endIndex = e;
-    } else {
-      const { statement: s, endIndex: e } = parseExpressionStatement(
-        startIndex
-      );
-      statement = s;
-      endIndex = e;
-    }
-
-    return { endIndex, statement };
+  function peekToken(amount = 1) {
+    return tokens[index + amount];
   }
 
-  function parseLetStatement(startIndex: number) {
-    const startToken = tokens[startIndex];
-    const identifierToken = tokens[startIndex + 1];
+  while (currentToken?.type != 'eof') {
+    const statement = parseStatement();
 
-    if (identifierToken.type !== 'ident') {
-      errors.push(
-        `identifier token not found for token ${JSON.stringify({
-          token: startToken,
-          index: startIndex,
-        })}`
-      );
-    }
-
-    const identifier = identifierToken.literal;
-
-    const assignToken = tokens[startIndex + 2];
-
-    if (assignToken.type !== 'assign') {
-      errors.push(
-        `assign token not found for token ${JSON.stringify({
-          token: identifierToken,
-          index: startIndex + 2,
-        })}`
-      );
-    }
-
-    const { endIndex, expression } = parseExpression(startIndex + 3);
-
-    return {
-      startIndex,
-      endIndex,
-      statement: {
-        ...expression,
-        type: 'let',
-        identifier,
-      },
-    };
-  }
-
-  function parseReturnStatement(startIndex: number) {
-    const { endIndex, expression } = parseExpression(startIndex + 1);
-
-    return {
-      statement: {
-        type: 'return',
-        value: expression,
-      },
-      endIndex,
-    };
-  }
-
-  function parseExpressionStatement(startIndex: number) {
-    const { endIndex, expression } = parseExpression(startIndex);
-
-    return {
-      startIndex,
-      endIndex,
-      statement: expression,
-    };
-  }
-
-  function parseGroupedExpression(startIndex: number) {
-    const { expression, endIndex } = parseExpression(startIndex + 1);
-
-    if (tokens[endIndex].type != 'rparen') {
-      errors.push('grouped expression parsing error');
-    }
-
-    return { expression, endIndex: endIndex + 1 };
-  }
-
-  function parseIfExpression(startIndex: number) {
-    let nextToken = tokens[startIndex + 1];
-
-    if (nextToken.type != 'lparen') {
-      errors.push(`parseIfExpression() missing lparen`);
-    }
-
-    const {
-      endIndex: conditionEndIndex,
-      expression: condition,
-    } = parseExpression(startIndex + 2, LOWEST);
-
-    nextToken = tokens[conditionEndIndex];
-
-    if (nextToken.type != 'rparen') {
-      errors.push(`parseIfExpression() missing rparen`);
-    }
-
-    nextToken = tokens[conditionEndIndex + 1];
-    if (nextToken.type != 'lbrace') {
-      errors.push(`parseIfExpression() missing lbrace`);
-    }
-
-    const { expression: consequence, endIndex } = parseBlockStatement(
-      conditionEndIndex + 2
-    );
-
-    nextToken = tokens[endIndex + 1];
-
-    if (nextToken.type === 'else') {
-      nextToken = tokens[endIndex + 2];
-
-      if (nextToken.type != 'lbrace') {
-        errors.push(`parseIfExpression() missing lbrace`);
-      }
-
-      const { expression: alternative, endIndex: e } = parseBlockStatement(
-        endIndex + 3
-      );
-
-      return {
-        expression: {
-          type: 'if',
-          condition,
-          consequence,
-          alternative,
-        },
-
-        endIndex: e,
-      };
-    }
-
-    return {
-      expression: {
-        type: 'if',
-        condition,
-        consequence,
-      },
-
-      endIndex,
-    };
-  }
-
-  function parseBlockStatement(startIndex: number) {
-    let index = startIndex;
-    const statements: any = [];
-
-    for (let i = index; i < tokens.length; i++) {
-      if (tokens[i].type === 'rbrace') {
-        index = i;
-        break;
-      }
-
-      const { endIndex, statement } = parseStatement(i);
-
+    if (statement != null) {
       statements.push(statement);
-      i = endIndex;
-
-      if (tokens[i].type === 'rbrace') {
-        index = i;
-        break;
-      }
     }
 
-    return {
-      expression: {
-        type: 'block',
-        statements,
-      },
-      endIndex: index,
-    };
+    advanceTokens();
   }
 
-  function parseFunctionLiteral(startIndex: number) {
-    let position = startIndex;
-    let parameters: any[] = [];
-
-    if (tokens[startIndex + 1].type != 'lparen') {
-      errors.push('parseFunctionLiteral() missing lparen');
+  function parseStatement() {
+    if (currentToken.type === 'let') {
+      const statement = parseLetStatement();
+      return statement;
     }
-
-    for (let i = startIndex + 2; i < tokens.length; i++) {
-      const token = tokens[i];
-      if (token.type === 'comma') {
-        continue;
-      }
-
-      if (token.type === 'rparen') {
-        position = i + 1;
-        break;
-      }
-
-      parameters.push({
-        type: 'identifier',
-        value: token.literal,
-      });
+    //
+    else if (currentToken.type === 'return') {
+      const statement = parseReturnStatement();
+      return statement;
     }
-
-    if (tokens[position].type != 'lbrace') {
-      errors.push('parseFunctionLiteral() missing lbrace');
+    //
+    else {
+      const statement = parseExpressionStatement();
+      return statement;
     }
-
-    position += 1;
-
-    const { expression: body, endIndex: e } = parseBlockStatement(position);
-
-    return {
-      expression: {
-        type: 'function-literal',
-        parameters,
-        body: body,
-      },
-      endIndex: e,
-    };
   }
 
-  function parseExpression(startIndex: number, precedence: number = LOWEST) {
-    let expression: any = {};
-    let endIndex = startIndex;
+  function parseLetStatement() {
+    let statement: any = {
+      type: 'let',
+    };
 
-    const token = tokens[startIndex];
+    advanceTokens();
 
-    if (token.type === 'if') {
-      const { expression: e, endIndex: i } = parseIfExpression(startIndex);
-      expression = e;
-      endIndex = i;
+    if (currentToken.type != 'ident') {
+      // throw error
+      errors.push(`Expected ident token`);
     }
 
-    if (token.type === 'function') {
-      const { expression: e, endIndex: i } = parseFunctionLiteral(startIndex);
-      expression = e;
-      endIndex = i;
+    statement.identifier = currentToken.literal;
+
+    advanceTokens();
+
+    if (currentToken.type != 'assign') {
+      // throw error
+      errors.push(`Expected eq token`);
     }
 
-    if (token.type === 'lparen') {
-      const { expression: e, endIndex: i } = parseGroupedExpression(startIndex);
-      expression = e;
-      endIndex = i;
+    advanceTokens();
+
+    const expression = parseExpression();
+    statement.value = expression;
+
+    return statement;
+  }
+
+  function parseReturnStatement() {
+    if (currentToken.type != 'return') {
+      // throw error
+      errors.push(`Expected return`);
     }
 
-    if (token.type === 'bang' || token.type === 'minus') {
-      const { endIndex: end, expression: e } = parseExpression(
-        startIndex + 1,
-        PREFIX
-      );
+    let statement: any = {
+      type: 'return',
+    };
 
-      expression.type = 'prefix-operator';
-      expression.value = e;
-      expression.operator = token.literal;
+    advanceTokens();
 
-      endIndex = end;
-    }
+    const expression = parseExpression();
+    statement.value = expression;
 
-    if (token.type === 'int') {
-      expression.type = 'integer-literal';
-      expression.value = parseInt(token.literal);
-      endIndex = startIndex + 1;
-    }
+    return statement;
+  }
 
-    if (token.type === 'ident') {
-      expression.type = 'identifier';
-      expression.value = token.literal;
-      endIndex = startIndex + 1;
-    }
+  function parseExpressionStatement() {
+    return parseExpression(LOWEST);
+  }
 
-    if (token.type === 'true' || token.type === 'false') {
-      expression.type = 'boolean-literal';
-      expression.value = token.literal === 'true' ? true : false;
-      endIndex = startIndex + 1;
-    }
+  function parseExpression(precedence = 0) {
+    let expression;
 
-    let nextToken = tokens[endIndex];
-    let nextPrecendence = precedenceMap[nextToken?.type] || LOWEST;
-
-    while (
-      nextPrecendence > precedence &&
-      nextToken != null &&
-      nextToken.type !== 'semicolon'
-    ) {
-      const { endIndex: end, expression: right } = parseExpression(
-        endIndex + 1,
-        nextPrecendence
-      );
-
-      const left = expression;
-
+    // -<expression> or !<expression>
+    if (isPrefixOperator(currentToken)) {
       expression = {
-        type: 'infix-operator',
-        left,
-        operator: nextToken.literal,
-        right,
+        type: 'prefix-operator',
+        operator: currentToken.literal,
       };
 
-      endIndex = end;
-      nextToken = tokens[endIndex];
-      nextPrecendence = precedenceMap[nextToken?.type] || LOWEST;
+      advanceTokens();
+
+      const value = parseExpression(PREFIX);
+      expression.value = value;
     }
 
-    return { expression, endIndex, startIndex };
+    if (currentToken.type === 'int') {
+      expression = {
+        type: 'integer-literal',
+        value: parseInt(currentToken.literal),
+      };
+
+      advanceTokens();
+    }
+    //
+    else if (currentToken.type === 'ident') {
+      if (nextToken.type === 'lparen') {
+        expression = parseCallExpression();
+      } else {
+        expression = {
+          type: 'identifier',
+          value: currentToken.literal,
+        };
+      }
+
+      advanceTokens();
+    }
+    //
+    else if (currentToken.type === 'true') {
+      expression = {
+        type: 'boolean-literal',
+        value: true,
+      };
+
+      advanceTokens();
+    }
+    //
+    else if (currentToken.type === 'false') {
+      expression = {
+        type: 'boolean-literal',
+        value: false,
+      };
+
+      advanceTokens();
+    }
+    //
+    else if (currentToken.type === 'lparen') {
+      advanceTokens();
+
+      expression = parseExpression(LOWEST);
+
+      // @ts-expect-error
+      if (currentToken.type !== 'rparen') {
+        errors.push(`Expected rparen`);
+      }
+
+      advanceTokens();
+    }
+    //
+    else if (currentToken.type === 'if') {
+      expression = {
+        type: 'if',
+      };
+
+      if (nextToken.type !== 'lparen') {
+        errors.push(`Expected lparen`);
+      }
+
+      advanceTokens();
+
+      const condition = parseExpression();
+      expression.condition = condition;
+
+      // @ts-expect-error
+      if (currentToken.type !== 'lbrace') {
+        errors.push(`Expected lbrace`);
+      }
+
+      advanceTokens();
+
+      const consequence = parseBlockStatement();
+      expression.consequence = consequence;
+
+      advanceTokens();
+
+      // @ts-expect-error
+      if (currentToken.type === 'else') {
+        advanceTokens();
+
+        // @ts-ignore
+        if (currentToken.type !== 'lbrace') {
+          errors.push(`Expected lbrace`);
+        }
+
+        advanceTokens();
+
+        const alternative = parseBlockStatement();
+        expression.alternative = alternative;
+      }
+    }
+    //
+    else if (currentToken.type === 'function') {
+      expression = parseFunctionLiteral();
+    }
+
+    const nextPrecedence = precedenceMap.get(currentToken.type) || 0;
+
+    // <expression> <infix> <expression>
+    while (isInfixOperator(currentToken) && precedence < nextPrecedence) {
+      const infixExpression = parseInfixExpression(expression);
+      expression = infixExpression;
+    }
+
+    return expression;
+  }
+
+  function parseBlockStatement() {
+    const statements: any[] = [];
+
+    while (currentToken.type !== 'rbrace' && currentToken.type != 'eof') {
+      const statement = parseStatement();
+
+      if (statement != null) {
+        statements.push(statement);
+      }
+
+      if (currentToken.type === 'semicolon') {
+        advanceTokens();
+      }
+    }
+
+    return {
+      statements,
+      type: 'block',
+    };
+  }
+
+  function parseCallExpression() {
+    if (currentToken.type !== 'ident') {
+      errors.push(`Expected ident`);
+    }
+
+    const expression: any = {
+      type: 'call',
+      function: {
+        type: 'function-identifier',
+        identifier: currentToken.literal,
+      },
+    };
+
+    const args: any[] = [];
+
+    advanceTokens(2);
+
+    while (currentToken.type !== 'rparen') {
+      const argument = parseExpression();
+      args.push(argument);
+
+      if (currentToken.type === 'comma') {
+        advanceTokens();
+      }
+
+      if (currentToken.type === 'rbrace') {
+        advanceTokens();
+      }
+    }
+
+    expression.arguments = args;
+    return expression;
+  }
+
+  function parseFunctionLiteral() {
+    if (currentToken.type !== 'function') {
+      errors.push(`Expected function`);
+    }
+    advanceTokens();
+
+    if (currentToken.type !== 'lparen') {
+      errors.push(`Expected lparen`);
+    }
+
+    advanceTokens();
+
+    const parameters: any[] = [];
+
+    while (currentToken.type === 'ident') {
+      const parameter = {
+        type: 'identifier',
+        value: currentToken.literal,
+      };
+
+      parameters.push(parameter);
+
+      if (nextToken.type === 'comma') {
+        advanceTokens();
+      }
+
+      advanceTokens();
+    }
+
+    if (currentToken.type !== 'rparen') {
+      errors.push(`Expected rparen`);
+    }
+
+    advanceTokens();
+
+    if (currentToken.type !== 'lbrace') {
+      errors.push(`Expected lbrace`);
+    }
+
+    advanceTokens();
+
+    const body = parseBlockStatement();
+
+    return {
+      type: 'function-literal',
+      parameters,
+      body,
+    };
+  }
+
+  function parseInfixExpression(left) {
+    const precedence = precedenceMap.get(currentToken.type) || 0;
+
+    const expression: any = {
+      type: 'infix-operator',
+      operator: currentToken.literal,
+      left,
+    };
+
+    advanceTokens();
+
+    const right = parseExpression(precedence);
+    expression.right = right;
+
+    return expression;
+  }
+
+  function isPrefixOperator(token: Token) {
+    return prefixOperators.includes(token.type);
+  }
+
+  function isInfixOperator(token: Token) {
+    return infixOperators.includes(token.type);
   }
 
   return { statements, errors };
 }
-
-// @ts-ignore
-const precedenceMap: Record<TokenType, number> = {
-  eq: EQUALS,
-  neq: EQUALS,
-  lt: LESSGREATER,
-  gt: LESSGREATER,
-  plus: SUM,
-  minus: SUM,
-  slash: PRODUCT,
-  asterisk: PRODUCT,
-};

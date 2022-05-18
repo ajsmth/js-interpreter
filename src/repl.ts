@@ -1,5 +1,6 @@
 import * as readline from 'readline';
 import { lexer } from './lexer';
+import { parser } from './parser';
 
 export function repl() {
   const rl = readline.createInterface({
@@ -14,6 +15,14 @@ export function repl() {
     tokens.forEach(token => {
       console.log({ token });
     });
+
+    const ast = parser(tokens);
+
+    const { statements } = ast;
+
+    statements.forEach(statement => {
+      console.log(JSON.stringify(statement, null, 2));
+    }); 
 
     rl.prompt();
   });

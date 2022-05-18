@@ -11,7 +11,10 @@ describe('parser', () => {
       {
         type: 'let',
         identifier: 'x',
-        value: 5,
+        value: {
+          type: 'integer-literal',
+          value: 5,
+        },
       },
     ];
 
@@ -30,12 +33,18 @@ describe('parser', () => {
       {
         type: 'let',
         identifier: 'x',
-        value: 5,
+        value: {
+          type: 'integer-literal',
+          value: 5,
+        },
       },
       {
         type: 'let',
         identifier: 'y',
-        value: 10,
+        value: {
+          type: 'integer-literal',
+          value: 10,
+        },
       },
     ];
 
@@ -347,8 +356,22 @@ describe('parser', () => {
     const expected = [
       { type: 'boolean-literal', value: true },
       { type: 'boolean-literal', value: false },
-      { type: 'let', identifier: 'foobar', value: true },
-      { type: 'let', identifier: 'barfoo', value: false },
+      {
+        type: 'let',
+        identifier: 'foobar',
+        value: {
+          type: 'boolean-literal',
+          value: true,
+        },
+      },
+      {
+        type: 'let',
+        identifier: 'barfoo',
+        value: {
+          type: 'boolean-literal',
+          value: false,
+        },
+      },
     ];
 
     expect(statements).toEqual(expected);
@@ -488,5 +511,141 @@ describe('parser', () => {
     ];
     expect(statements).toEqual(expected);
     expect(errors.length).toEqual(0);
+  });
+
+  test('call expressions', () => {
+    const input = `
+      add(1, 2 * 3, 4 + 5);
+    `;
+
+    const tokens = lexer(input);
+    const { statements, errors } = parser(tokens);
+
+    const expected = [
+      {
+        type: 'call',
+        function: {
+          type: 'function-identifier',
+          identifier: 'add',
+        },
+        arguments: [
+          { type: 'integer-literal', value: 1 },
+          {
+            type: 'infix-operator',
+            operator: '*',
+            left: { type: 'integer-literal', value: 2 },
+            right: { type: 'integer-literal', value: 3 },
+          },
+          {
+            type: 'infix-operator',
+            operator: '+',
+            left: { type: 'integer-literal', value: 4 },
+            right: { type: 'integer-literal', value: 5 },
+          },
+        ],
+      },
+    ];
+
+    expect(statements).toEqual(expected);
+    expect(errors.length).toEqual(0);
+  });
+
+  test('more call expressions', () => {
+    const input = `
+    add(2 + 2, 3 * 3 * 3);
+    callsFunction(2, 3, fn(x,y) { x + y; });
+    `;
+
+    const expected = [
+      // add(2 + 2, 3 * 3 * 3);
+      {
+        type: 'call',
+        function: {
+          type: 'function-identifier',
+          identifier: 'add',
+        },
+        arguments: [
+          {
+            type: 'infix-operator',
+            operator: '+',
+            left: {
+              type: 'integer-literal',
+              value: 2,
+            },
+            right: {
+              type: 'integer-literal',
+              value: 2,
+            },
+          },
+          {
+            type: 'infix-operator',
+            operator: '*',
+            left: {
+              type: 'infix-operator',
+              operator: '*',
+              left: {
+                type: 'integer-literal',
+                value: 3,
+              },
+              right: {
+                type: 'integer-literal',
+                value: 3,
+              },
+            },
+            right: {
+              type: 'integer-literal',
+              value: 3,
+            },
+          },
+        ],
+      },
+      // callsFunction(2, 3, fn(x,y) { x + y; });
+      {
+        type: 'call',
+        function: {
+          type: 'function-identifier',
+          identifier: 'callsFunction',
+        },
+        arguments: [
+          {
+            type: 'integer-literal',
+            value: 2,
+          },
+          {
+            type: 'integer-literal',
+            value: 3,
+          },
+          {
+            type: 'function-literal',
+            parameters: [
+              { type: 'identifier', value: 'x' },
+              { type: 'identifier', value: 'y' },
+            ],
+            body: {
+              type: 'block',
+              statements: [
+                {
+                  type: 'infix-operator',
+                  operator: '+',
+                  left: {
+                    type: 'identifier',
+                    value: 'x',
+                  },
+                  right: {
+                    type: 'identifier',
+                    value: 'y',
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ];
+
+    const tokens = lexer(input);
+    const { statements, errors } = parser(tokens);
+    expect(statements).toEqual(expected);
+    expect(errors.length).toBe(0);
   });
 });
