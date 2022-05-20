@@ -1,4 +1,5 @@
 import * as readline from 'readline';
+import { evaluate } from './evaluation';
 import { lexer } from './lexer';
 import { parser } from './parser';
 
@@ -11,18 +12,14 @@ export function repl() {
 
   rl.on('line', (input: string) => {
     const tokens = lexer(input);
-
-    tokens.forEach(token => {
-      console.log({ token });
-    });
-
     const ast = parser(tokens);
 
     const { statements } = ast;
 
     statements.forEach(statement => {
-      console.log(JSON.stringify(statement, null, 2));
-    }); 
+      const output = evaluate(statement);
+      console.log(JSON.stringify(output, null, 2));
+    });
 
     rl.prompt();
   });
