@@ -46,13 +46,13 @@ export function parser(tokens: Token[]) {
     index += amount;
     currentToken = tokens[index];
     nextToken = tokens[index + 1];
+
+    if (currentToken?.type === 'illegal') {
+      console.error(`Illegal token encountered!`)
+    }
   }
 
-  function peekToken(amount = 1) {
-    return tokens[index + amount];
-  }
-
-  while (currentToken?.type != 'eof') {
+  while (currentToken != null && currentToken?.type != 'eof') {
     const statement = parseStatement();
 
     if (statement != null) {

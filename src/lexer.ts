@@ -25,7 +25,7 @@ export function lexer(input: string) {
       index += 1;
     }
 
-    if (token.type === 'illegal') {
+    if (token.type === 'illegal' && char != null) {
       if (isLetter(char)) {
         let i = index;
         let c = input[i];
@@ -104,8 +104,8 @@ const specialChars: Record<string, Token> = {
   '}': { type: 'rbrace', literal: '}' },
 };
 
-function isLetter(c: string) {
-  return c.toLowerCase() != c.toUpperCase();
+function isLetter(c?: string) {
+  return c?.toLowerCase() != c?.toUpperCase();
 }
 
 function isDigitCode(char: string) {
