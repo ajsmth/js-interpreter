@@ -10,16 +10,16 @@ export function repl() {
     prompt: '>> ',
   });
 
+  let env = {};
+
   rl.on('line', (input: string) => {
     const tokens = lexer(input);
     const ast = parser(tokens);
 
     const { statements } = ast;
+    const output = evaluate(statements, env);
 
-    statements.forEach(statement => {
-      const output = evaluate(statement);
-      console.log(JSON.stringify(output, null, 2));
-    });
+    console.log({ output });
 
     rl.prompt();
   });

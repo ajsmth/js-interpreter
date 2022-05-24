@@ -9,49 +9,49 @@ describe('evaluation', () => {
       10;
     `;
 
-    expectToEqual('5', 5);
-    expectToEqual('10', 10);
+    expectOutput('5', 5);
+    expectOutput('10', 10);
   });
 
   test('booleans', () => {
-    expectToEqual('true', true);
-    expectToEqual('false', false);
-    expectToEqual('1 < 2', true);
-    expectToEqual('1 > 2', false);
-    expectToEqual('1 < 1', false);
-    expectToEqual('1 != 1', false);
-    expectToEqual('1 == 1', true);
-    expectToEqual('1 != 2', true);
-    expectToEqual('1 == 2', false);
+    expectOutput('true', true);
+    expectOutput('false', false);
+    expectOutput('1 < 2', true);
+    expectOutput('1 > 2', false);
+    expectOutput('1 < 1', false);
+    expectOutput('1 != 1', false);
+    expectOutput('1 == 1', true);
+    expectOutput('1 != 2', true);
+    expectOutput('1 == 2', false);
   });
 
   test('infix', () => {
-    expectToEqual('5 * 5', 25);
-    expectToEqual('5 + 5', 10);
-    expectToEqual('5 / 5', 1);
-    expectToEqual('5 - 5', 0);
-    expectToEqual('5 * 2 + 10', 20);
-    expectToEqual('(5 + 10) * 2', 30);
-    expectToEqual('50 / (2 + 3)', 10);
+    expectOutput('5 * 5', 25);
+    expectOutput('5 + 5', 10);
+    expectOutput('5 / 5', 1);
+    expectOutput('5 - 5', 0);
+    expectOutput('5 * 2 + 10', 20);
+    expectOutput('(5 + 10) * 2', 30);
+    expectOutput('50 / (2 + 3)', 10);
   });
 
   test('prefix', () => {
-    expectToEqual('!true', false);
-    expectToEqual('!false', true);
-    expectToEqual('!5', false);
-    expectToEqual('!!true', true);
-    expectToEqual('!!false', false);
-    expectToEqual('!!5', true);
+    expectOutput('!true', false);
+    expectOutput('!false', true);
+    expectOutput('!5', false);
+    expectOutput('!!true', true);
+    expectOutput('!!false', false);
+    expectOutput('!!5', true);
   });
 
   test('conditionals', () => {
-    expectToEqual('if (true) { 10 };', 10);
-    expectToEqual('if (false) { 10 };', null);
-    expectToEqual('if (1) { 10 };', 10);
-    expectToEqual('if (1 > 2) { 10 };', null);
-    expectToEqual('if (1 < 2) { 10 };', 10);
-    expectToEqual('if (1 > 2 ) { 10 } else { 20 };', 20);
-    expectToEqual('if (1 < 2) { 10 } else { 20 };', 10);
+    expectOutput('if (true) { 10 };', 10);
+    expectOutput('if (false) { 10 };', null);
+    expectOutput('if (1) { 10 };', 10);
+    expectOutput('if (1 > 2) { 10 };', null);
+    expectOutput('if (1 < 2) { 10 };', 10);
+    expectOutput('if (1 > 2 ) { 10 } else { 20 };', 20);
+    expectOutput('if (1 < 2) { 10 } else { 20 };', 10);
   });
 
   test('return', () => {
@@ -61,7 +61,7 @@ describe('evaluation', () => {
       9 * 9 * 9;
     `;
 
-    expectToEqual(
+    expectOutput(
       `  
       5 * 5 * 5;
       return 10;
@@ -70,7 +70,7 @@ describe('evaluation', () => {
       10
     );
 
-    expectToEqual(
+    expectOutput(
       `
       if (10 > 1) {
         if (10 > 1) {
@@ -83,9 +83,37 @@ describe('evaluation', () => {
       10
     );
   });
+
+  test('bindings', () => {
+    expectOutput('let a = 5; a;', 5);
+    expectOutput('let a = 5 * 5; a;', 25);
+    expectOutput('let a = 5; let b = a; b;', 5);
+    expectOutput('let a = 5; let b = a; let c = a + b + 5; c;', 15);
+  });
+
+  test('functions', () => {
+    expectOutput(`let identity = fn(x) { x; }; identity(5);`, 5);
+    expectOutput(`let identity = fn(x) { return x; }; identity(5);`, 5);
+    expectOutput(`let double = fn(x) { return x * 2; }; double(5);`, 10);
+    expectOutput(`let add = fn(x,y) { return x + y; }; add(1, 5);`, 6);
+    expectOutput(`let add = fn(x,y) { return x + y; }; add(1, -5);`, -4);
+    expectOutput(`fn(x) { x; }(5)`, 5);
+    expectOutput(
+      `let add = fn(x,y) { return x + y; }; add(add(1, -5), add(1, 2));`,
+      -1
+    );
+
+    expectOutput(`
+      let newAdder = fn(x) {
+        fn(y) { x + y };
+      };
+      let addTwo = newAdder(2);
+      addTwo(2);
+    `, 4)
+  });
 });
 
-function expectToEqual(input: string, expected: any) {
+function expectOutput(input: string, expected: any) {
   const tokens = lexer(input);
   const ast = parser(tokens);
   const output = evaluate(ast.statements);
