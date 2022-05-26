@@ -48,7 +48,7 @@ export function parser(tokens: Token[]) {
     nextToken = tokens[index + 1];
 
     if (currentToken?.type === 'illegal') {
-      console.error(`Illegal token encountered!`)
+      console.error(`Illegal token encountered!`);
     }
   }
 
@@ -153,6 +153,15 @@ export function parser(tokens: Token[]) {
       };
 
       advanceTokens();
+    }
+    //
+    else if (currentToken.type === 'string') {
+      expression = {
+        type: 'string-literal',
+        value: currentToken.literal,
+      };
+
+      advanceTokens()
     }
     //
     else if (currentToken.type === 'ident') {

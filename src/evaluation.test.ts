@@ -103,13 +103,28 @@ describe('evaluation', () => {
       -1
     );
 
-    expectOutput(`
+    expectOutput(
+      `
       let newAdder = fn(x) {
         fn(y) { x + y };
       };
       let addTwo = newAdder(2);
       addTwo(2);
-    `, 4)
+    `,
+      4
+    );
+  });
+
+  test('strings', () => {
+    expectOutput('"hello world"', 'hello world');
+    expectOutput(`"hello" + " " + "world"`, 'hello world');
+  });
+
+  test('len()', () => {
+    expectOutput(`len("hi")`, 2);
+    expectOutput(`len("")`, 0);
+    expectOutput(`len(1)`, undefined);
+    expectOutput('len(1, 2)', undefined);
   });
 });
 

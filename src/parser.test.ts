@@ -648,4 +648,20 @@ describe('parser', () => {
     expect(statements).toEqual(expected);
     expect(errors.length).toBe(0);
   });
+
+  test('strings', () => {
+    expectOutput(`"hello world"`, [
+      {
+        type: 'string-literal',
+        value: 'hello world',
+      },
+    ]);
+  });
+
+  function expectOutput(input: string, expected: any[]) {
+    const tokens = lexer(input);
+    const { statements, errors } = parser(tokens);
+    expect(statements).toEqual(expected);
+    expect(errors.length).toBe(0);
+  }
 });

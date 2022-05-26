@@ -1,4 +1,15 @@
+const builtIn = {
+  len: (value: any) => {
+    return value.length;
+  },
+};
+
 export function evaluate(statements: any[], environment: any = {}) {
+  environment = {
+    ...builtIn,
+    ...environment,
+  };
+
   let result;
 
   for (let statement of statements) {
@@ -12,7 +23,6 @@ export function evaluate(statements: any[], environment: any = {}) {
   return result;
 
   function evaluateStatement(statement: any, scope = {}) {
-    // console.log({ statement });
     if (statement.type === 'let') {
       const value = evaluateStatement(statement.value, scope);
       environment[statement.identifier] = value;
@@ -38,6 +48,13 @@ export function evaluate(statements: any[], environment: any = {}) {
       const fn: any = environment[statement.function.identifier];
       let inner = { ...scope, ...fn?.scope };
 
+      if (builtIn[statement.function.identifier]) {
+        const args = statement.arguments.map(argument =>
+          evaluateStatement(argument, inner)
+        );
+        return builtIn[statement.function.identifier](...args);
+      }
+
       if (!fn) {
         console.error(
           `unable to find function identifier: ${statement.function.identifier}`
@@ -51,7 +68,6 @@ export function evaluate(statements: any[], environment: any = {}) {
         if (arg != null) {
           const value = evaluateStatement(arg, inner);
           inner[parameter.value] = value;
-          // environment[parameter.value] = value;
         }
       }
 
@@ -72,6 +88,10 @@ export function evaluate(statements: any[], environment: any = {}) {
     }
 
     if (statement.type === 'boolean-literal') {
+      return statement.value;
+    }
+
+    if (statement.type === 'string-literal') {
       return statement.value;
     }
 

@@ -14,7 +14,7 @@ describe('lexer', () => {
       { type: 'rbrace', literal: '}' },
       { type: 'comma', literal: ',' },
       { type: 'semicolon', literal: ';' },
-      { type: 'eof', literal: 'eof' }
+      { type: 'eof', literal: 'eof' },
     ];
 
     expect(tokens).toEqual(expected);
@@ -37,7 +37,7 @@ describe('lexer', () => {
       { type: 'assign', literal: '=' },
       { type: 'int', literal: '10' },
       { type: 'semicolon', literal: ';' },
-      { type: 'eof', literal: 'eof' }
+      { type: 'eof', literal: 'eof' },
     ];
 
     const tokens = lexer(input);
@@ -79,7 +79,7 @@ describe('lexer', () => {
       { type: 'ident', literal: 'ten' },
       { type: 'rparen', literal: ')' },
       { type: 'semicolon', literal: ';' },
-      { type: 'eof', literal: 'eof' }
+      { type: 'eof', literal: 'eof' },
     ];
 
     const tokens = lexer(input);
@@ -105,7 +105,7 @@ describe('lexer', () => {
       { type: 'gt', literal: '>' },
       { type: 'int', literal: '5' },
       { type: 'semicolon', literal: ';' },
-      { type: 'eof', literal: 'eof' }
+      { type: 'eof', literal: 'eof' },
     ];
 
     const tokens = lexer(input);
@@ -139,7 +139,7 @@ describe('lexer', () => {
       { type: 'false', literal: 'false' },
       { type: 'semicolon', literal: ';' },
       { type: 'rbrace', literal: '}' },
-      { type: 'eof', literal: 'eof' }
+      { type: 'eof', literal: 'eof' },
     ];
 
     const tokens = lexer(input);
@@ -161,10 +161,22 @@ describe('lexer', () => {
       { type: 'neq', literal: '!=' },
       { type: 'int', literal: '9' },
       { type: 'semicolon', literal: ';' },
-      { type: 'eof', literal: 'eof' }
+      { type: 'eof', literal: 'eof' },
     ];
 
     const tokens = lexer(input);
     expect(tokens).toEqual(expected);
   });
+
+  test('string', () => {
+    expectTokens(`"foobar"`, [{ type: 'string', literal: 'foobar' }, eofToken]);
+    expectTokens(`"foo bar"`, [{ type: 'string', literal: 'foo bar' }, eofToken]);
+  });
+
+  function expectTokens(input: string, expected: Token[]) {
+    const tokens = lexer(input);
+    expect(tokens).toEqual(expected);
+  }
 });
+
+const eofToken: Token = { type: 'eof', literal: 'eof' };

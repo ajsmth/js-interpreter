@@ -9,7 +9,7 @@ export function lexer(input: string) {
       continue;
     }
 
-    let token: Token = { type: 'illegal', literal: char };
+    let token: Token = { type: 'unknown', literal: char };
 
     if (specialChars[char]) {
       token = specialChars[char];
@@ -25,7 +25,7 @@ export function lexer(input: string) {
       index += 1;
     }
 
-    if (token.type === 'illegal' && char != null) {
+    if (token.type === 'unknown' && char != null) {
       if (isLetter(char)) {
         let i = index;
         let c = input[i];
@@ -49,6 +49,24 @@ export function lexer(input: string) {
         index = i - 1;
       }
 
+      if (char === '"') {
+        let string = '';
+
+        index += 1 
+        char = input[index]
+
+        while (char !== '"') {
+          string += char;
+          index += 1;
+          char = input[index];
+        }
+
+        token = {
+          type: 'string',
+          literal: string,
+        };
+      }
+
       if (isDigitCode(char)) {
         let i = index;
         let c = input[i];
@@ -68,7 +86,7 @@ export function lexer(input: string) {
         index = i - 1;
       }
     }
-    
+
     tokens.push(token);
   }
 
@@ -149,4 +167,6 @@ export type TokenType =
   | 'else'
   | 'return'
   | 'eq'
-  | 'neq';
+  | 'neq'
+  | 'unknown'
+  | 'string';
