@@ -170,7 +170,21 @@ describe('lexer', () => {
 
   test('string', () => {
     expectTokens(`"foobar"`, [{ type: 'string', literal: 'foobar' }, eofToken]);
-    expectTokens(`"foo bar"`, [{ type: 'string', literal: 'foo bar' }, eofToken]);
+    expectTokens(`"foo bar"`, [
+      { type: 'string', literal: 'foo bar' },
+      eofToken,
+    ]);
+  });
+
+  test('arrays', () => {
+    expectTokens('[1,2]', [
+      { type: 'lbracket', literal: '[' },
+      { type: 'int', literal: '1' },
+      { type: 'comma', literal: ',' },
+      { type: 'int', literal: '2' },
+      { type: 'rbracket', literal: ']' },
+      eofToken,
+    ]);
   });
 
   function expectTokens(input: string, expected: Token[]) {

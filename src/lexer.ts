@@ -52,8 +52,8 @@ export function lexer(input: string) {
       if (char === '"') {
         let string = '';
 
-        index += 1 
-        char = input[index]
+        index += 1;
+        char = input[index];
 
         while (char !== '"') {
           string += char;
@@ -120,6 +120,8 @@ const specialChars: Record<string, Token> = {
   ')': { type: 'rparen', literal: ')' },
   '{': { type: 'lbrace', literal: '{' },
   '}': { type: 'rbrace', literal: '}' },
+  '[': { type: 'lbracket', literal: '[' },
+  ']': { type: 'rbracket', literal: ']' },
 };
 
 function isLetter(c?: string) {
@@ -169,4 +171,6 @@ export type TokenType =
   | 'eq'
   | 'neq'
   | 'unknown'
-  | 'string';
+  | 'string'
+  | 'lbracket'
+  | 'rbracket';

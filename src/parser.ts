@@ -7,6 +7,7 @@ const SUM = 4;
 const PRODUCT = 5;
 const PREFIX = 6;
 const CALL = 7;
+const INDEX = 8;
 
 const precedenceMap: Map<TokenType, number> = new Map([
   ['eq', EQUALS],
@@ -18,6 +19,7 @@ const precedenceMap: Map<TokenType, number> = new Map([
   ['slash', PRODUCT],
   ['asterisk', PRODUCT],
   ['lparen', CALL],
+  ['lbracket', INDEX],
 ]);
 
 const prefixOperators: TokenType[] = ['bang', 'minus'];
@@ -31,6 +33,7 @@ const infixOperators: TokenType[] = [
   'lt',
   'eq',
   'neq',
+  'lbracket',
 ];
 
 export function parser(tokens: Token[]) {
@@ -41,11 +44,13 @@ export function parser(tokens: Token[]) {
 
   let currentToken = tokens[index];
   let nextToken = tokens[index + 1];
+  let previousToken = tokens[index - 1];
 
   function advanceTokens(amount = 1) {
     index += amount;
     currentToken = tokens[index];
     nextToken = tokens[index + 1];
+    previousToken = tokens[index - 1];
 
     if (currentToken?.type === 'illegal') {
       console.error(`Illegal token encountered!`);
@@ -155,19 +160,37 @@ export function parser(tokens: Token[]) {
       advanceTokens();
     }
     //
+    else if (currentToken.type === 'lbracket') {
+      expression = parseArrayLiteral();
+      advanceTokens();
+    }
+    //
     else if (currentToken.type === 'string') {
       expression = {
         type: 'string-literal',
         value: currentToken.literal,
       };
 
-      advanceTokens()
+      advanceTokens();
     }
     //
     else if (currentToken.type === 'ident') {
       if (nextToken.type === 'lparen') {
         expression = parseCallExpression();
-      } else {
+      }
+      //
+      else if (nextToken.type === 'lbracket') {
+        const left = {
+          type: 'identifier',
+          value: currentToken.literal,
+        };
+
+        advanceTokens();
+
+        expression = parseArrayExpression(left);
+      }
+      //
+      else {
         expression = {
           type: 'identifier',
           value: currentToken.literal,
@@ -254,12 +277,22 @@ export function parser(tokens: Token[]) {
       expression = parseFunctionLiteral();
     }
 
-    const nextPrecedence = precedenceMap.get(currentToken.type) || 0;
+    let nextPrecedence = precedenceMap.get(currentToken.type) || 0;
 
     // <expression> <infix> <expression>
-    while (isInfixOperator(currentToken) && precedence < nextPrecedence) {
+    while (
+      isInfixOperator(currentToken) &&
+      // @ts-ignore
+      (precedence < nextPrecedence || precedence === 8)
+    ) {
       const infixExpression = parseInfixExpression(expression);
       expression = infixExpression;
+
+      if (expression.operator === 'index' && currentToken.type === 'rbracket') {
+        advanceTokens();
+      }
+
+      nextPrecedence = precedenceMap.get(currentToken.type) || 0;
     }
 
     return expression;
@@ -284,6 +317,23 @@ export function parser(tokens: Token[]) {
       statements,
       type: 'block',
     };
+  }
+
+  function parseArrayExpression(left: any) {
+    let expression: any = {
+      type: 'infix-operator',
+      operator: 'index',
+      left,
+    };
+
+    advanceTokens();
+
+    const right = parseExpression();
+    expression.right = right;
+
+    advanceTokens();
+
+    return expression;
   }
 
   function parseCallExpression() {
@@ -370,8 +420,36 @@ export function parser(tokens: Token[]) {
     };
   }
 
-  function parseInfixExpression(left) {
-    const precedence = precedenceMap.get(currentToken.type) || 0;
+  function parseArrayLiteral() {
+    if (currentToken.type !== 'lbracket') {
+      // error
+    }
+
+    const expression: any = {
+      type: 'array-literal',
+    };
+
+    advanceTokens();
+
+    let elements: any[] = [];
+
+    while (currentToken.type !== 'rbracket') {
+      const element = parseExpression();
+      elements.push(element);
+
+      // @ts-expect-error
+      if (currentToken.type !== 'rbracket') {
+        advanceTokens();
+      }
+    }
+
+    expression.elements = elements;
+
+    return expression;
+  }
+
+  function parseInfixExpression(left: any) {
+    let precedence = precedenceMap.get(currentToken.type) || 0;
 
     const expression: any = {
       type: 'infix-operator',
@@ -379,7 +457,15 @@ export function parser(tokens: Token[]) {
       left,
     };
 
+    // const isIndex = currentToken.type === 'lbracket'
+
+    if (currentToken.type === 'lbracket') {
+      expression.operator = 'index';
+    }
+
     advanceTokens();
+
+    // precedence = precedenceMap.get(currentToken.type) || 0
 
     const right = parseExpression(precedence);
     expression.right = right;

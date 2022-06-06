@@ -658,6 +658,146 @@ describe('parser', () => {
     ]);
   });
 
+  test('array literal', () => {
+    expectOutput(`[1, 2 * 2, 3 + 3]`, [
+      {
+        type: 'array-literal',
+        elements: [
+          { type: 'integer-literal', value: 1 },
+          {
+            type: 'infix-operator',
+            operator: '*',
+            left: {
+              type: 'integer-literal',
+              value: 2,
+            },
+            right: {
+              type: 'integer-literal',
+              value: 2,
+            },
+          },
+          {
+            type: 'infix-operator',
+            operator: '+',
+            left: {
+              type: 'integer-literal',
+              value: 3,
+            },
+            right: {
+              type: 'integer-literal',
+              value: 3,
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  // TODO
+  test('array index', () => {
+    expectOutput(`myArray[0];`, [
+      {
+        type: 'infix-operator',
+        operator: 'index',
+        left: {
+          type: 'identifier',
+          value: 'myArray',
+        },
+        right: {
+          type: 'integer-literal',
+          value: 0,
+        },
+      },
+    ]);
+
+    expectOutput(`myArray[1 + 2];`, [
+      {
+        type: 'infix-operator',
+        operator: 'index',
+        left: {
+          type: 'identifier',
+          value: 'myArray',
+        },
+        right: {
+          type: 'infix-operator',
+          operator: '+',
+          left: {
+            type: 'integer-literal',
+            value: 1,
+          },
+          right: {
+            type: 'integer-literal',
+            value: 2,
+          },
+        },
+      },
+    ]);
+  });
+
+  test('operator precendence in index', () => {
+    
+    expectOutput(
+      `
+      a * [1,2,3,4][b*c] * d
+    `,
+      [
+        {
+          type: 'infix-operator',
+          operator: '*',
+          left: {
+            type: 'infix-operator',
+            operator: '*',
+            left: {
+              type: 'identifier',
+              value: 'a',
+            },
+            right: {
+              type: 'infix-operator',
+              operator: 'index',
+              right: {
+                type: 'infix-operator',
+                operator: '*',
+                left: {
+                  type: 'identifier',
+                  value: 'b',
+                },
+                right: {
+                  type: 'identifier',
+                  value: 'c',
+                },
+              },
+              left: {
+                type: 'array-literal',
+                elements: [
+                  {
+                    type: 'integer-literal',
+                    value: 1,
+                  },
+                  {
+                    type: 'integer-literal',
+                    value: 2,
+                  },
+                  {
+                    type: 'integer-literal',
+                    value: 3,
+                  },
+                  {
+                    type: 'integer-literal',
+                    value: 4,
+                  },
+                ],
+              },
+            },
+          },
+          right: {
+            type: 'identifier',
+            value: 'd',
+          },
+        },
+      ]
+    );
+  });
+
   function expectOutput(input: string, expected: any[]) {
     const tokens = lexer(input);
     const { statements, errors } = parser(tokens);
