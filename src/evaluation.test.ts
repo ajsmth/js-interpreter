@@ -126,6 +126,21 @@ describe('evaluation', () => {
     expectOutput(`len(1)`, undefined);
     expectOutput('len(1, 2)', undefined);
   });
+
+  test('array literal', () => {
+    expectOutput(`[1, 2 * 2, 3 + 3]`, [1, 4, 6])
+  })
+
+  test('array index operator', () => {
+    expectOutput(`[1,2,3][0]`, 1)
+    expectOutput(`[1,2,3][1]`, 2)
+    expectOutput(`let i = 0; [1][i]`, 1)
+    expectOutput(`let i = 1; [1,2][i]`, 2)
+    expectOutput(`[1,2,3][1 + 1]`, 3)
+    expectOutput(`let myArray = [1, 2, 3]; myArray[0] + myArray[2];`, 4)
+    expectOutput(`let myArray = [1,2,3]; let i = myArray[0]; myArray[i];`, 2)
+    expectOutput(`[1,2,3][3]`, undefined)
+  })
 });
 
 function expectOutput(input: string, expected: any) {

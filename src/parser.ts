@@ -179,17 +179,6 @@ export function parser(tokens: Token[]) {
         expression = parseCallExpression();
       }
       //
-      else if (nextToken.type === 'lbracket') {
-        const left = {
-          type: 'identifier',
-          value: currentToken.literal,
-        };
-
-        advanceTokens();
-
-        expression = parseArrayExpression(left);
-      }
-      //
       else {
         expression = {
           type: 'identifier',
@@ -277,13 +266,12 @@ export function parser(tokens: Token[]) {
       expression = parseFunctionLiteral();
     }
 
-    let nextPrecedence = precedenceMap.get(currentToken.type) || 0;
-
+    let nextPrecedence = precedenceMap.get(currentToken?.type) || 0;
     // <expression> <infix> <expression>
     while (
       isInfixOperator(currentToken) &&
       // @ts-ignore
-      (precedence < nextPrecedence || precedence === 8)
+      (precedence < nextPrecedence || precedence === INDEX)
     ) {
       const infixExpression = parseInfixExpression(expression);
       expression = infixExpression;
@@ -292,7 +280,7 @@ export function parser(tokens: Token[]) {
         advanceTokens();
       }
 
-      nextPrecedence = precedenceMap.get(currentToken.type) || 0;
+      nextPrecedence = precedenceMap.get(currentToken?.type) || 0;
     }
 
     return expression;
@@ -333,6 +321,10 @@ export function parser(tokens: Token[]) {
 
     advanceTokens();
 
+    if (currentToken.type === 'rbracket') {
+      advanceTokens();
+    }
+
     return expression;
   }
 
@@ -353,7 +345,7 @@ export function parser(tokens: Token[]) {
 
     advanceTokens(2);
 
-    while (currentToken.type !== 'rparen') {
+    while (currentToken.type !== 'rparen' && currentToken.type !== 'eof') {
       const argument = parseExpression();
       args.push(argument);
 
@@ -477,8 +469,8 @@ export function parser(tokens: Token[]) {
     return prefixOperators.includes(token.type);
   }
 
-  function isInfixOperator(token: Token) {
-    return infixOperators.includes(token.type);
+  function isInfixOperator(token?: Token) {
+    return token && infixOperators.includes(token.type);
   }
 
   return { statements, errors };

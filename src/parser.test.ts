@@ -735,7 +735,6 @@ describe('parser', () => {
   });
 
   test('operator precendence in index', () => {
-    
     expectOutput(
       `
       a * [1,2,3,4][b*c] * d
@@ -796,7 +795,63 @@ describe('parser', () => {
         },
       ]
     );
+
+    expectOutput(`add(a * b[2])`, [
+      {
+        type: 'call',
+        function: {
+          type: 'function-identifier',
+          identifier: 'add',
+        },
+        arguments: [
+          {
+            type: 'infix-operator',
+            operator: '*',
+            left: { type: 'identifier', value: 'a' },
+            right: {
+              type: 'infix-operator',
+              operator: 'index',
+              left: { type: 'identifier', value: 'b' },
+              right: { type: 'integer-literal', value: 2 },
+            },
+          },
+        ],
+      },
+    ]);
   });
+
+  test('multiple index operators', () => {
+    expectOutput(`myArray[0] + myArray[2]`, [
+      {
+        type: 'infix-operator',
+        operator: '+',
+        left: {
+          type: 'infix-operator',
+          operator: 'index',
+          left: {
+            type: 'identifier',
+            value: 'myArray'
+          },
+          right: {
+            type: 'integer-literal',
+            value: 0
+          }
+        },
+        right: {
+          type: 'infix-operator',
+          operator: 'index',
+          left: {
+            type: 'identifier',
+            value: 'myArray'
+          },
+          right: {
+            type: 'integer-literal',
+            value: 2
+          }
+        }
+      }
+    ])
+  }) 
 
   function expectOutput(input: string, expected: any[]) {
     const tokens = lexer(input);

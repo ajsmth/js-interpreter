@@ -95,6 +95,10 @@ export function evaluate(statements: any[], environment: any = {}) {
       return statement.value;
     }
 
+    if (statement.type === 'array-literal') {
+      return evaluateArray(statement, scope);
+    }
+
     if (statement.type === 'infix-operator') {
       const left = evaluateStatement(statement.left, scope);
       const right = evaluateStatement(statement.right, scope);
@@ -129,6 +133,10 @@ export function evaluate(statements: any[], environment: any = {}) {
 
       if (statement.operator === '==') {
         return left == right;
+      }
+
+      if (statement.operator === 'index') {
+        return left[right];
       }
     }
 
@@ -176,5 +184,15 @@ export function evaluate(statements: any[], environment: any = {}) {
     }
 
     return result;
+  }
+
+  function evaluateArray(arrayLiteralStatement: any, scope: any) {
+    let arr: any = [];
+
+    for (let element of arrayLiteralStatement.elements) {
+      arr.push(evaluateStatement(element, scope));
+    }
+
+    return arr;
   }
 }
