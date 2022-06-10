@@ -830,33 +830,120 @@ describe('parser', () => {
           operator: 'index',
           left: {
             type: 'identifier',
-            value: 'myArray'
+            value: 'myArray',
           },
           right: {
             type: 'integer-literal',
-            value: 0
-          }
+            value: 0,
+          },
         },
         right: {
           type: 'infix-operator',
           operator: 'index',
           left: {
             type: 'identifier',
-            value: 'myArray'
+            value: 'myArray',
           },
           right: {
             type: 'integer-literal',
-            value: 2
-          }
+            value: 2,
+          },
+        },
+      },
+    ]);
+  });
+
+  test('basic hashes', () => {
+    expectOutput(`{"one": 1, "two": 2 }`, [
+      {
+        type: 'hash-literal',
+        entries: [
+          {
+            key: { type: 'string-literal', value: 'one' },
+            value: { type: 'integer-literal', value: 1 },
+          },
+          {
+            key: { type: 'string-literal', value: 'two' },
+            value: { type: 'integer-literal', value: 2 },
+          },
+        ],
+      },
+    ]);
+  });
+
+  test('hashes w/ expressions', () => {
+    expectOutput(`{"one": 0 + 1, "two": 10 - 8, "three": [0, 1]  }`, [
+      {
+        type: 'hash-literal',
+        entries: [
+          {
+            key: { type: 'string-literal', value: 'one' },
+            value: {
+              type: 'infix-operator',
+              operator: '+',
+              left: { type: 'integer-literal', value: 0 },
+              right: { type: 'integer-literal', value: 1 },
+            },
+          },
+          {
+            key: { type: 'string-literal', value: 'two' },
+            value: {
+              type: 'infix-operator',
+              operator: '-',
+              left: { type: 'integer-literal', value: 10 },
+              right: { type: 'integer-literal', value: 8 },
+            },
+          },
+          {
+            key: { type: 'string-literal', value: 'three' },
+            value: {
+              type: 'array-literal',
+              elements: [
+                { type: 'integer-literal', value: 0 },
+                { type: 'integer-literal', value: 1 },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  test('hash index operator', () => {
+    expectOutput(`{ "one": 2 }["one"]`, [
+      {
+        type: 'infix-operator',
+        operator: 'index', 
+        left: {
+          type: 'hash-literal',
+          entries: [
+            {
+              key: {
+                type: 'string-literal',
+                value: "one",
+              },
+              value: {
+                type: 'integer-literal',
+                value: 2
+              }
+            }
+          ]
+        },
+        right: {
+          type: "string-literal",
+          value: "one"
         }
       }
     ])
-  }) 
+  })
 
   function expectOutput(input: string, expected: any[]) {
     const tokens = lexer(input);
     const { statements, errors } = parser(tokens);
     expect(statements).toEqual(expected);
+    if (errors.length > 1) {
+      errors.forEach(e => console.log({ e }))
+    }
     expect(errors.length).toBe(0);
   }
 });

@@ -165,6 +165,15 @@ export function parser(tokens: Token[]) {
       advanceTokens();
     }
     //
+    else if (currentToken.type === 'lbrace') {
+      expression = parseHashLiteral();
+
+      // @ts-expect-error
+      if (currentToken.type !== 'eof') {
+        advanceTokens();
+      }
+    }
+    //
     else if (currentToken.type === 'string') {
       expression = {
         type: 'string-literal',
@@ -307,27 +316,6 @@ export function parser(tokens: Token[]) {
     };
   }
 
-  function parseArrayExpression(left: any) {
-    let expression: any = {
-      type: 'infix-operator',
-      operator: 'index',
-      left,
-    };
-
-    advanceTokens();
-
-    const right = parseExpression();
-    expression.right = right;
-
-    advanceTokens();
-
-    if (currentToken.type === 'rbracket') {
-      advanceTokens();
-    }
-
-    return expression;
-  }
-
   function parseCallExpression() {
     if (currentToken.type !== 'ident') {
       errors.push(`Expected ident`);
@@ -440,6 +428,32 @@ export function parser(tokens: Token[]) {
     return expression;
   }
 
+  function parseHashLiteral() {
+    let expression: any = {
+      type: 'hash-literal',
+      entries: [],
+    };
+
+    advanceTokens();
+
+    while (currentToken.type !== 'rbrace') {
+      const key = parseExpression();
+      advanceTokens();
+
+      const value = parseExpression();
+
+      const entry = { key, value };
+      expression.entries.push(entry);
+
+      // @ts-ignore
+      if (currentToken.type !== 'rbrace') {
+        advanceTokens();
+      }
+    }
+
+    return expression;
+  }
+
   function parseInfixExpression(left: any) {
     let precedence = precedenceMap.get(currentToken.type) || 0;
 
@@ -465,8 +479,8 @@ export function parser(tokens: Token[]) {
     return expression;
   }
 
-  function isPrefixOperator(token: Token) {
-    return prefixOperators.includes(token.type);
+  function isPrefixOperator(token?: Token) {
+    return token && prefixOperators.includes(token?.type);
   }
 
   function isInfixOperator(token?: Token) {

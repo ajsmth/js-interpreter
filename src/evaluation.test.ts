@@ -128,18 +128,29 @@ describe('evaluation', () => {
   });
 
   test('array literal', () => {
-    expectOutput(`[1, 2 * 2, 3 + 3]`, [1, 4, 6])
-  })
+    expectOutput(`[1, 2 * 2, 3 + 3]`, [1, 4, 6]);
+  });
 
   test('array index operator', () => {
-    expectOutput(`[1,2,3][0]`, 1)
-    expectOutput(`[1,2,3][1]`, 2)
-    expectOutput(`let i = 0; [1][i]`, 1)
-    expectOutput(`let i = 1; [1,2][i]`, 2)
-    expectOutput(`[1,2,3][1 + 1]`, 3)
-    expectOutput(`let myArray = [1, 2, 3]; myArray[0] + myArray[2];`, 4)
-    expectOutput(`let myArray = [1,2,3]; let i = myArray[0]; myArray[i];`, 2)
-    expectOutput(`[1,2,3][3]`, undefined)
+    expectOutput(`[1,2,3][0]`, 1);
+    expectOutput(`[1,2,3][1]`, 2);
+    expectOutput(`let i = 0; [1][i]`, 1);
+    expectOutput(`let i = 1; [1,2][i]`, 2);
+    expectOutput(`[1,2,3][1 + 1]`, 3);
+    expectOutput(`let myArray = [1, 2, 3]; myArray[0] + myArray[2];`, 4);
+    expectOutput(`let myArray = [1,2,3]; let i = myArray[0]; myArray[i];`, 2);
+    expectOutput(`[1,2,3][3]`, undefined);
+  });
+
+  test('hash literals', () => {
+    expectOutput(`{ "one": 2 }`, { ['one']: 2 });
+  });
+
+  test('hash index operator', () => {
+    expectOutput(`{ "one": 2 }["one"]`, 2);
+    expectOutput(`{ "one": 2 }["bar"]`, undefined);
+    expectOutput(`{}["foo"]`, undefined);
+    expectOutput(`{[true]: 5}[true]`, 5)
   })
 });
 

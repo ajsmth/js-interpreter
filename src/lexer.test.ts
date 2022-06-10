@@ -187,6 +187,17 @@ describe('lexer', () => {
     ]);
   });
 
+  test('hashes', () => {
+    expectTokens('{"foo": "bar"}', [
+      { type: 'lbrace', literal: '{' },
+      { type: 'string', literal: 'foo' },
+      { type: 'colon', literal: ':' },
+      { type: 'string', literal: 'bar' },
+      { type: 'rbrace', literal: '}' },
+      { type: 'eof', literal: 'eof' },
+    ]);
+  });
+
   function expectTokens(input: string, expected: Token[]) {
     const tokens = lexer(input);
     expect(tokens).toEqual(expected);

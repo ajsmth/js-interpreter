@@ -122,6 +122,7 @@ const specialChars: Record<string, Token> = {
   '}': { type: 'rbrace', literal: '}' },
   '[': { type: 'lbracket', literal: '[' },
   ']': { type: 'rbracket', literal: ']' },
+  ':': { type: 'colon', literal: ':' }
 };
 
 function isLetter(c?: string) {
@@ -173,4 +174,5 @@ export type TokenType =
   | 'unknown'
   | 'string'
   | 'lbracket'
-  | 'rbracket';
+  | 'rbracket'
+  | 'colon';

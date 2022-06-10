@@ -2,6 +2,19 @@ const builtIn = {
   len: (value: any) => {
     return value.length;
   },
+  first: (value: any) => {
+    return value[0];
+  },
+  last: (value: any) => {
+    return value[value.length - 1];
+  },
+  rest: (array: any[]) => {
+    return array.slice(1);
+  },
+  push: (arr: any[], value: any) => {
+    arr.push(value);
+    return arr;
+  },
 };
 
 export function evaluate(statements: any[], environment: any = {}) {
@@ -99,6 +112,10 @@ export function evaluate(statements: any[], environment: any = {}) {
       return evaluateArray(statement, scope);
     }
 
+    if (statement.type === 'hash-literal') {
+      return evaluateHash(statement, scope);
+    }
+
     if (statement.type === 'infix-operator') {
       const left = evaluateStatement(statement.left, scope);
       const right = evaluateStatement(statement.right, scope);
@@ -194,5 +211,17 @@ export function evaluate(statements: any[], environment: any = {}) {
     }
 
     return arr;
+  }
+
+  function evaluateHash(hashStatement: any, scope: any) {
+    let hash = {};
+
+    for (const entry of hashStatement.entries) {
+      const key = evaluateStatement(entry.key);
+      const value = evaluateStatement(entry.value);
+      hash[key] = value;
+    }
+
+    return hash;
   }
 }
